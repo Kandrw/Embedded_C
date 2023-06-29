@@ -64,3 +64,28 @@
     </dl>
   </dd>
 </dl>
+
+## D6
+<dl>
+  <dd>
+    <dl>
+        main.c - Программа калькулятор 
+    </dl>
+    <dl>
+        operations.h - заголовочный файл для библеотеки с операциями
+    </dl>
+    <dl>
+        файлы библеотеки: operation_add.c, operation_sub.c, operation_mul.c, operation_div.c
+    </dl>
+    <dl>
+        Сборка библеотеки и программы:
+        <dl>
+          makefile - статическая библеотека
+        </dl>
+        <dl>
+          makefile_dinamic.mk - динамическая библеотека
+        </dl>
+    </dl>
+  </dd>
+</dl>
+
