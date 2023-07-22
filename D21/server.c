@@ -39,7 +39,7 @@ void *thread_message_processing(void *args){
         sscanf(suser, "%4d", &user);
         if(user == 0){
             semop(fd_sem, &sem_unlock, 1);
-            continue;
+            break;
         }
         for(int i = 0; i < SIZE_LOGIN; ++i){
             printf("%c", ptr[POS_LIST_USER + (SIZE_CELL * user) + i]);
@@ -65,6 +65,7 @@ void replace_enter(char *str){
         ++i;
     }
 }
+
 void init_server(){
     char login[SIZE_LOGIN];
     memset(login, 0, SIZE_LOGIN);
@@ -110,9 +111,12 @@ int init_memory_and_semaphore(char *filename_mem, char *filename_sem){
     printf("Init semaphore\n");
     return 0;
 }
+
 int main(){
+
     char filename_mem[] = FILEMEMORY;
     char filename_sem[] = FILESEM;
+
     if( init_memory_and_semaphore(filename_mem, filename_sem) ){
         return -1;
     }
@@ -121,10 +125,13 @@ int main(){
     init_server();
     pthread_t id;
     pthread_create(&id, NULL, thread_message_processing, (void**)NULL);
+
     sprintf(ptr, "%4d", count_user);
     printf("sem = %d\n", semctl (fd_sem, 0, GETVAL, 0)); 
+
     char buffer_com[SIZE_MSG];
     memset(buffer_com, 0, sizeof(buffer_com));
+
     while(1){
         printf("Input: ");
         fgets(buffer_com, sizeof(buffer_com), stdin);

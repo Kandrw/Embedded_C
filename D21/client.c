@@ -18,6 +18,7 @@ int count_user = 0;
 
 char *ptr;
 int fd_sem;
+int fd;
 struct sembuf sem1;
 
 struct sembuf sem_lock = {0, -10, 0}, sem_unlock = {0, 10, 0}, sem_unlocks = {0, 10, 0};
@@ -45,6 +46,7 @@ void *thread_message_processing(void *args){
         }
         if(user == 0){
             printf("Server exit\n");
+            semop(fd_sem, &sem_unlock, 1);
             exit(0);
             break;
         }
@@ -52,6 +54,7 @@ void *thread_message_processing(void *args){
             printf("%c", ptr[POS_LIST_USER + (SIZE_CELL * user) + i]);
         }
         printf(": %s\n",ptr + 8);
+
         sscanf(ptr + POS_ITER_USER, "%4d", &cr_users);
         --cr_users;
         sprintf(ptr + POS_ITER_USER, "%4d", cr_users);
@@ -84,22 +87,21 @@ void init_user(){
     sprintf(ptr + delta + SIZE_LOGIN, MASK, 1, 5, 0);
     login[SIZE_LOGIN-1] = '\0';
     printf("login = %s\n", login);
+    
     pos_log = count_user;
     printf("poslog = %d\n", pos_log);
     count_user+=1;
     sprintf(ptr, "%d", count_user);
 }
-int main(){
-    srand(time(NULL));
-    char filename_mem[] = FILEMEMORY;
-    char filename_sem[] = FILESEM;
+
+int init_memory_and_semaphore(char *filename_mem, char *filename_sem){
     key_t fd_key = ftok(filename_mem, KEYMEM);
     if(fd_key < 0){
         perror("ftok mem");
         return -1;
     }
     printf("fd_key mem = 0x%x\n", fd_key);
-    int fd = shmget(fd_key, SIZE, 0666);
+    fd = shmget(fd_key, SIZE, IPC_CREAT | 0666);
     if(fd < 0){
         printf("errno = %d\n", errno);
         perror("shmget");
@@ -118,13 +120,23 @@ int main(){
         return -1;
     }
     printf("fd_key_sem = 0x%x\n", fd_key_sem);
-    fd_sem = semget(fd_key_sem, 1, 0666);
+    fd_sem = semget(fd_key_sem, 1, IPC_CREAT | 0666);
     if(fd_sem < 0){
         printf("errno = %d\n", errno);
         perror("semget sem");
         return -1;
     }
     printf("Init semaphore\n");
+    return 0;
+}
+
+int main(){
+    srand(time(NULL));
+    char filename_mem[] = FILEMEMORY;
+    char filename_sem[] = FILESEM;
+    if( init_memory_and_semaphore(filename_mem, filename_sem) ){
+        return -1;
+    }
     init_user();
     pthread_t id;
     pthread_create(&id, NULL, thread_message_processing, (void**)NULL);
@@ -138,6 +150,21 @@ int main(){
         replace_enter(buffer_com);
         if( !strcmp(buffer_com, "exit") ){
             break;
+        }
+        else if(!strcmp(buffer_com, "list")){
+            sscanf(ptr, "%d", &count_user);
+            count_user_iter = count_user;
+            for(int i = 0; i < count_user_iter; ++i){
+                sscanf(ptr + POS_LIST_USER + (SIZE_CELL * i) + SIZE_LOGIN, "%2d", &found_user);
+                if(found_user == 0)
+                    i++;
+                else{
+                    for(int i2 = 0; i2 < SIZE_LOGIN; ++i2){
+                        printf("%c",ptr[POS_LIST_USER + (SIZE_CELL * i) + i2]); 
+                    }
+                    printf("\n");
+                }
+            }
         }
         else{
             sscanf(ptr, "%d", &count_user);
