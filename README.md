@@ -195,3 +195,22 @@
     </dl>
   </dd>
 </dl>
+
+## D23: Сокеты
+
+<dl>
+  <dd>
+    <dl>
+        DD1: AF_LOCAL SOCK_STREAM
+    </dl>
+    <dl>
+        DD2: AF_LOCAL SOCK_DGRAM
+    </dl>
+    <dl>
+        DD3: AF_INET SOCK_STREAM
+    </dl>
+    <dl>
+        DD4: AF_INET SOCK_DGRAM
+    </dl>
+  </dd>
+</dl>
