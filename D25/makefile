@@ -1,5 +1,5 @@
 
-SRC = server.c client.c udp_client.c
+SRC = server.c client.c
 .PHONY: $(SRC)
 all: $(SRC)
 $(SRC):

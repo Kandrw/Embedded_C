@@ -5,56 +5,42 @@
 #include <pthread.h>
 #include <signal.h>
 
-#include <sys/poll.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #define SERVER "127.0.0.1"
-#define PORT 29999
-#define SIZEBUF 256
-#define SIZE_HEADER 20
-#define SIZE_H_UDP 8
+#define PORT 39999
+
+#define SIZEBUF 200
 
 void *thread_server(void *args){
     int fd = *(int*)args;
     char buffer[SIZEBUF];
     char msg_client[SIZEBUF];
-    
+    char str[INET_ADDRSTRLEN];
+    int count_package = 0;
     struct sockaddr_in client;
     int size = sizeof(struct sockaddr_in);
-    int res;
-    int count_package = 0;
     memset((char*)&client, 0, sizeof(struct sockaddr_in));
     inet_pton(AF_INET, SERVER, &client.sin_addr);
     client.sin_port = htons(PORT);
     client.sin_family = AF_INET;
+    
     printf("Start server: %d\n", fd);
+    
     while(1){
         memset(msg_client, 0, SIZEBUF);
-        if(recvfrom(fd, msg_client, SIZEBUF, 0, NULL, NULL) == -1){
+        if(recvfrom(fd, msg_client, SIZEBUF, 0, (struct sockaddr*)&client, &size) == -1){
             perror("recvform");
         }
-        #ifdef DEBUG
-            printf("size_msg = %d\n", strlen(msg_client+SIZE_HEADER));
-        #endif
-        if(strcmp(buffer, msg_client+SIZE_HEADER)){
+        printf("msg new\n");
+        if(ntohs(client.sin_port) != PORT){
             count_package++;
             printf("count packege = %d\n", count_package);
-            #ifdef DEBUG
-                for(int i = 0; i < SIZEBUF; ++i){
-                    printf("%c", msg_client[i]);
-                }
-                printf("\n");
-                for(int i = 0; i < SIZEBUF; ++i){
-                    
-                    printf("%d ", msg_client[i]);
-                }
-                printf("\n");
-            #endif
-            printf("msg: %s\n", msg_client+SIZE_HEADER+SIZE_H_UDP);
-            sprintf(buffer, "1234%s", msg_client+SIZE_HEADER+SIZE_H_UDP);
+            printf("client: %s\n", msg_client);
+            sprintf(buffer,"server-%s", msg_client);
+            printf("new msg: %s\n", buffer);
             if(sendto(fd, buffer, SIZEBUF, 0, (struct sockaddr*)&client, size) == -1){
                 perror("sendto");
             }
@@ -62,7 +48,6 @@ void *thread_server(void *args){
     }
     return NULL;
 }
-
 int main(){
 
     struct sockaddr_in server;
@@ -70,7 +55,8 @@ int main(){
     inet_pton(AF_INET, SERVER, &server.sin_addr);
     server.sin_port = htons(PORT);
     server.sin_family = AF_INET;
-    int fd = socket(AF_INET, SOCK_RAW, IPPROTO_UDP | IPPROTO_ICMP);
+
+    int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if(fd < 0){
         perror("socket");
         return -1;
@@ -79,7 +65,6 @@ int main(){
         perror("bind");
         return -1;
     }
-    printf("Init socket - %d\n", fd);
 
     pthread_t id_server;
 
@@ -105,9 +90,6 @@ int main(){
     if(close(fd)){
         perror("close");
     }
-    printf("End\n");
+    printf("End server\n");
     return 0;
 }
-
-
-
