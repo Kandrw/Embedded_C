@@ -71,6 +71,10 @@
         /server 192.168.56.102 4567
 
 
+## D28
+    Broadcast
+    Multicast
+
 
 
 
