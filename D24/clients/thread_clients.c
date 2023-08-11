@@ -15,7 +15,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SERVER "127.0.0.1"
 #define SIZEBUF 256
 
 struct param_client{
@@ -24,7 +23,7 @@ struct param_client{
     int interval;
     pthread_t id;
 };
-
+char *address;
 int port;
 int mass = 0;
 int active_client = 0;
@@ -54,12 +53,8 @@ void *thread_client(void *args){
         perror("ERROR sigemptyset");
         return NULL;
     }
-    //sigaddset(&signalSet, SIGUSR1);
-    //sigaddset(&signalSet, SIGUSR2);
-    //sigaddset(&signalSet, SIGTERM);
     sigaddset(&signalSet, SIGPIPE);
     pthread_sigmask(SIG_SETMASK, &signalSet, NULL);
-
     int fds = socket(AF_INET, SOCK_STREAM, 0);
     if(fds < 0){
         perror("socket");
@@ -68,7 +63,7 @@ void *thread_client(void *args){
     struct sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
-    inet_pton(AF_INET, SERVER, &(addr.sin_addr));
+    inet_pton(AF_INET, address, &(addr.sin_addr));
     char buf[SIZEBUF];
     while(mass){}
     sleep(prm->sec_start);
@@ -135,28 +130,42 @@ void *thread_client(void *args){
 int main(int argc, char *argv[]){
     srand(time(NULL));
     printf("pid = %d\n", getpid());
-    //port | count client | mass | condition random_prm | count msg | time_start | interval
+    //address | port | count client | mass | condition random_prm | count msg | time_start | interval
     for(int i = 0; i < argc; ++i){
         printf("%s ", argv[i]);
     }
     printf("\n");
-    if(argc < 3){
+    if(argc < 5){
         printf("no arguments specified\n");
         return -1;
     }
-    sscanf(argv[1], "%d", &port);
-    int index = 2;
+    struct in_addr addr;
+    address = argv[1];
+    if(inet_pton(AF_INET, address, &addr) <= 0){
+        printf("Incorrect addres server: %s\n", address);
+        return -1;
+    }
+    if(sscanf(argv[2], "%d", &port) != 1){
+        printf("Incorrect port: %s\n", argv[2]);
+        return -1;
+    }
+    int index = 3;
     int count_client = 100, con_random_prm = 1;
-    sscanf(argv[index++], "%d", &count_client);
-    sscanf(argv[index++], "%d", &mass);
-    sscanf(argv[index++], "%d", &con_random_prm);
-    
-    int count_msg = 1, tsec_start = 1, interval = 1;
-
-    sscanf(argv[index++], "%d", &count_msg);
-    sscanf(argv[index++], "%d", &tsec_start);
-    sscanf(argv[index++], "%d", &interval);
-    
+    if(sscanf(argv[index++], "%d", &count_client) != 1){
+        printf("Incorrect count client\n");
+        return -1;
+    }
+    if(sscanf(argv[index++], "%d", &mass) != 1){
+        printf("Incorrect condition mass, (value 0 or 1), default: 0\n");
+        mass = 0;
+    }
+    int count_msg = 10, tsec_start = 1, interval = 1;
+    if(argc >= 9){
+        sscanf(argv[index++], "%d", &con_random_prm);
+        sscanf(argv[index++], "%d", &count_msg);
+        sscanf(argv[index++], "%d", &tsec_start);
+        sscanf(argv[index++], "%d", &interval);
+    }    
     struct param_client *clients = (struct param_client*)malloc(sizeof(struct param_client) * count_client);
     if(con_random_prm){
         for(int i = 0; i < count_client; ++i){

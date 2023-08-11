@@ -10,42 +10,53 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define SERVER "127.0.0.1"
-#define PORT 31415
+/*
+    argiments:
+        ADDRESS
+        PORT
+*/
 
 #define SIZEBUF 200
 
 void *thread_server(void *args){
     int fd = *(int*)args;
-    char buffer[SIZEBUF];
+    char buffer[SIZEBUF + 10];
     char msg_client[SIZEBUF];
     char str[INET_ADDRSTRLEN];
     int count_package = 0;
     struct sockaddr_in client;
     int size = sizeof(struct sockaddr_in);
     memset((char*)&client, 0, sizeof(struct sockaddr_in));
-    inet_pton(AF_INET, SERVER, &client.sin_addr);
+    inet_pton(AF_INET, ADDRESS, &client.sin_addr);
     client.sin_port = htons(PORT);
     client.sin_family = AF_INET;
     
-    printf("Start server: fd:%d, %s:%d\n", fd, SERVER, PORT);
+    printf("Start server: fd:%d, %s:%d\n", fd, ADDRESS, PORT);
     
     while(1){
         memset(msg_client, 0, SIZEBUF);
-        if(recvfrom(fd, msg_client, SIZEBUF, 0, (struct sockaddr*)&client, &size) == -1){
+        if(recvfrom(fd, msg_client, SIZEBUF, 0, (struct sockaddr*)&client, (socklen_t*)&size) == -1){
             perror("recvform");
         }
-        if(ntohs(client.sin_port) != PORT){
+        inet_ntop(AF_INET, &client.sin_addr, str, INET_ADDRSTRLEN);
+        
+        if(ntohs(client.sin_port) != PORT && (strcmp(str, ADDRESS) != 0)){
             count_package++;
             printf("count packege = %d\n", count_package);
-            inet_ntop(AF_INET, &client.sin_addr, str, INET_ADDRSTRLEN);
             printf("[%s:%d] ", str, ntohs(client.sin_port));
             printf("client: %s\n", msg_client);
+            memset(buffer, 0, sizeof(buffer));
             sprintf(buffer,"server-%s", msg_client);
             
-            if(sendto(fd, buffer, SIZEBUF, 0, (struct sockaddr*)&client, size) == -1){
+            if(sendto(fd, buffer, SIZEBUF, 0, (struct sockaddr*)&client, (socklen_t)size) == -1){
                 perror("sendto");
             }
+        }
+        else{
+            #ifdef DEBUG
+                printf("[%s:%d] ", str, ntohs(client.sin_port));
+                printf("msg: %s\n", msg_client);
+            #endif
         }
     }
     return NULL;
@@ -54,7 +65,7 @@ int main(){
 
     struct sockaddr_in server;
     memset((char*)&server, 0, sizeof(struct sockaddr_in));
-    inet_pton(AF_INET, SERVER, &server.sin_addr);
+    inet_pton(AF_INET, ADDRESS, &server.sin_addr);
     server.sin_port = htons(PORT);
     server.sin_family = AF_INET;
 
@@ -67,7 +78,7 @@ int main(){
         perror("bind");
         return -1;
     }
-
+	
     pthread_t id_server;
 
     pthread_create(&id_server, NULL, thread_server, (void**)&fd);
