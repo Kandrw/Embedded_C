@@ -77,11 +77,12 @@
 ## D28
     Broadcast
     Multicast
-
-## D29: Linux module
+## Linux module
+### D29
     test_load - загрузка простого модуля
-    file_operations - реализация функций read и write для модуля
-
+    file_dev - реализация функций read и write для модуля, 
+### D30: взаимодейтсвие через proc и sys
+    
 
 
 
